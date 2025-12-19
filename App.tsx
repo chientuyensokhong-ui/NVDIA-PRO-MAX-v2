@@ -102,6 +102,62 @@ const THEMES: Theme[] = [
   }
 ];
 
+// --- COMPONENT MOVED OUTSIDE TO FIX RE-RENDER/FOCUS BUGS ---
+const ProfileSelector = React.memo(({ profile, onChange, onPreview, isPreviewing, theme }: { 
+  profile: VoiceProfile, 
+  onChange: (p: VoiceProfile) => void,
+  onPreview: () => void,
+  isPreviewing: boolean,
+  theme: Theme
+}) => (
+  <div className="space-y-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Giọng gốc</label>
+        <select 
+          value={profile.baseVoice} 
+          onChange={(e) => onChange({ ...profile, baseVoice: e.target.value as BaseVoice })} 
+          className="w-full rounded-lg px-2 py-1.5 text-xs outline-none transition-all border"
+          style={{ backgroundColor: theme.colors.card, color: theme.colors.accent, borderColor: theme.colors.border }}
+        >
+          {BASE_VOICES.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Ngữ điệu</label>
+        <select 
+          value={profile.intonation} 
+          onChange={(e) => onChange({ ...profile, intonation: e.target.value as Intonation })} 
+          className="w-full rounded-lg px-2 py-1.5 text-xs outline-none border"
+          style={{ backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }}
+        >
+          {INTONATIONS.map(i => <option key={i} value={i}>{i}</option>)}
+        </select>
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Vùng miền</label>
+        <select 
+          value={profile.region} 
+          onChange={(e) => onChange({ ...profile, region: e.target.value as Region })} 
+          className="w-full rounded-lg px-2 py-1.5 text-xs outline-none border"
+          style={{ backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }}
+        >
+          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
+    </div>
+    <button 
+      onClick={onPreview} 
+      disabled={isPreviewing}
+      className="w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all disabled:opacity-50"
+      style={{ backgroundColor: theme.colors.highlight, color: theme.colors.text, borderColor: theme.colors.border }}
+    >
+      {isPreviewing ? <Loader2 size={12} className="animate-spin" /> : <Headphones size={12} />}
+      {isPreviewing ? "ĐANG TẠO MẪU..." : "NGHE THỬ GIỌNG NÀY"}
+    </button>
+  </div>
+));
+
 const LoadingScreen = () => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Initializing system core...");
@@ -166,64 +222,6 @@ const LoadingScreen = () => {
   );
 };
 
-// --- SECURITY LOCKOUT SCREEN ---
-const SecurityLockoutScreen = ({ unlockTime, hwId, ip }: { unlockTime: number, hwId: string, ip: string }) => {
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = Date.now();
-      const diff = unlockTime - now;
-
-      if (diff <= 0) {
-        window.location.reload(); // Try to unban if time expired
-        return;
-      }
-
-      const h = Math.floor(diff / (1000 * 60 * 60));
-      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const s = Math.floor((diff % (1000 * 60)) / 1000);
-      setTimeLeft(`${h}h ${m}m ${s}s`);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [unlockTime]);
-
-  return (
-    <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black text-red-500 p-8 text-center font-mono">
-      <div className="animate-pulse mb-8">
-        <Skull size={120} strokeWidth={1} />
-      </div>
-      <h1 className="text-4xl font-black uppercase mb-4 tracking-tighter">Security Lockout</h1>
-      <p className="text-xl text-red-300 mb-8 max-w-2xl border-t border-b border-red-900 py-4">
-        Phát hiện hành vi chỉnh sửa trái phép Mã nguồn hoặc xóa thông tin bản quyền tác giả.
-        Hệ thống đã kích hoạt cơ chế bảo vệ tự động.
-      </p>
-      
-      <div className="grid grid-cols-2 gap-8 mb-10 w-full max-w-md">
-        <div className="p-4 border border-red-900 rounded bg-red-950/20">
-          <p className="text-xs text-red-400 mb-1">BLOCKED HW-ID</p>
-          <p className="font-bold">{hwId}</p>
-        </div>
-        <div className="p-4 border border-red-900 rounded bg-red-950/20">
-          <p className="text-xs text-red-400 mb-1">BLOCKED IP</p>
-          <p className="font-bold">{ip}</p>
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2">
-        <p className="text-xs uppercase tracking-widest text-red-600">Thời gian mở khóa tự động</p>
-        <div className="text-6xl font-black font-mono bg-red-950 px-6 py-4 rounded-xl border-2 border-red-600 shadow-[0_0_30px_rgba(220,38,38,0.5)]">
-          {timeLeft}
-        </div>
-      </div>
-      
-      <p className="mt-12 text-xs text-red-800">
-        ERROR CODE: 0xDEAD_COPYRIGHT_VIOLATION
-      </p>
-    </div>
-  );
-};
-
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.SINGLE);
   const [speed, setSpeed] = useState(1.0);
@@ -233,10 +231,6 @@ const App: React.FC = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isGlobalLoading, setIsGlobalLoading] = useState(true);
   
-  // Security Ban State
-  const [isBanned, setIsBanned] = useState(false);
-  const [banUnlockTime, setBanUnlockTime] = useState(0);
-
   // Auth & Security State
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -314,21 +308,6 @@ const App: React.FC = () => {
       return `HW-${Math.abs(hash)}`;
     };
     setHardwareFingerprint(getFingerprint());
-  }, []);
-
-  // BAN LOGIC CHECK
-  useEffect(() => {
-    const lockoutKey = 'tts_sec_lockout';
-    const storedLockout = localStorage.getItem(lockoutKey);
-    if (storedLockout) {
-      const unlockTime = parseInt(storedLockout, 10);
-      if (Date.now() < unlockTime) {
-        setIsBanned(true);
-        setBanUnlockTime(unlockTime);
-      } else {
-        localStorage.removeItem(lockoutKey); // Remove expired ban
-      }
-    }
   }, []);
 
   // IP Geolocation Check & Usage Tracking & GLOBAL LOADING LOGIC
@@ -431,37 +410,6 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // INTEGRITY CHECK: Anti-Tamper mechanism (72 Hours Ban)
-  useEffect(() => {
-    // Only run if not already banned
-    if (isBanned) return;
-
-    const integrityInterval = setInterval(() => {
-      const bodyText = document.body.innerText;
-      
-      // OBFUSCATED STRINGS
-      // "Đào Văn Phương"
-      const authorSig = String.fromCharCode(272, 224, 111, 32, 86, 259, 110, 32, 80, 104, 432, 417, 110, 103); 
-      // "Daovanphuong38"
-      const contactSig = String.fromCharCode(68, 97, 111, 118, 97, 110, 112, 104, 117, 111, 110, 103, 51, 56);
-      // "0945053428"
-      const phoneSig = String.fromCharCode(48, 57, 52, 53, 48, 53, 51, 52, 50, 56);
-
-      // Check if ANY of the signatures are missing from the rendered text
-      if (!bodyText.includes(authorSig) && !bodyText.includes(contactSig) && !bodyText.includes(phoneSig)) {
-         // TAMPER DETECTED: Trigger 72h Ban
-         const BAN_DURATION_MS = 72 * 60 * 60 * 1000; // 72 hours
-         const unlockTime = Date.now() + BAN_DURATION_MS;
-         
-         localStorage.setItem('tts_sec_lockout', unlockTime.toString());
-         
-         setBanUnlockTime(unlockTime);
-         setIsBanned(true);
-      }
-    }, 4000); // Check every 4 seconds
-    return () => clearInterval(integrityInterval);
-  }, [isBanned]);
-
   const isOverDailyLimit = !isAdmin && (dailyUsage + charCount) > DAILY_LIMIT;
   const isOverHumanLimit = !isAdmin && useHumanMode && (humanUsage + charCount) > HUMAN_DAILY_LIMIT;
 
@@ -541,8 +489,6 @@ const App: React.FC = () => {
     setAudioUrl(null);
     try {
       let pcmData: Uint8Array | undefined;
-      // Note: We might want to pass 'useHumanMode' to services if we had logic to switch prompt complexity
-      // For now, we assume standard generation consumes quota, and Human Mode consumes specific quota.
       
       if (mode === AppMode.SINGLE) {
         pcmData = await generateSpeech(singleText, singleProfile, speed);
@@ -621,64 +567,6 @@ const App: React.FC = () => {
   const handleTabChange = (tab: 'builder' | 'raw') => {
     setActiveTab(tab);
   };
-
-  const ProfileSelector = ({ profile, onChange, onPreview, isPreviewing }: { 
-    profile: VoiceProfile, 
-    onChange: (p: VoiceProfile) => void,
-    onPreview: () => void,
-    isPreviewing: boolean 
-  }) => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Giọng gốc</label>
-          <select 
-            value={profile.baseVoice} 
-            onChange={(e) => onChange({ ...profile, baseVoice: e.target.value as BaseVoice })} 
-            className="w-full rounded-lg px-2 py-1.5 text-xs outline-none transition-all border"
-            style={{ backgroundColor: theme.colors.card, color: theme.colors.accent, borderColor: theme.colors.border }}
-          >
-            {BASE_VOICES.map(v => <option key={v} value={v}>{v}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Ngữ điệu</label>
-          <select 
-            value={profile.intonation} 
-            onChange={(e) => onChange({ ...profile, intonation: e.target.value as Intonation })} 
-            className="w-full rounded-lg px-2 py-1.5 text-xs outline-none border"
-            style={{ backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }}
-          >
-            {INTONATIONS.map(i => <option key={i} value={i}>{i}</option>)}
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase font-bold" style={{ color: theme.colors.subText }}>Vùng miền</label>
-          <select 
-            value={profile.region} 
-            onChange={(e) => onChange({ ...profile, region: e.target.value as Region })} 
-            className="w-full rounded-lg px-2 py-1.5 text-xs outline-none border"
-            style={{ backgroundColor: theme.colors.card, color: theme.colors.text, borderColor: theme.colors.border }}
-          >
-            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-      </div>
-      <button 
-        onClick={onPreview} 
-        disabled={isPreviewing}
-        className="w-full py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all disabled:opacity-50"
-        style={{ backgroundColor: theme.colors.highlight, color: theme.colors.text, borderColor: theme.colors.border }}
-      >
-        {isPreviewing ? <Loader2 size={12} className="animate-spin" /> : <Headphones size={12} />}
-        {isPreviewing ? "ĐANG TẠO MẪU..." : "NGHE THỬ GIỌNG NÀY"}
-      </button>
-    </div>
-  );
-
-  if (isBanned) {
-    return <SecurityLockoutScreen unlockTime={banUnlockTime} hwId={hardwareFingerprint} ip={clientIp} />;
-  }
 
   if (isGlobalLoading) {
     return <LoadingScreen />;
@@ -989,6 +877,7 @@ const App: React.FC = () => {
                   onChange={setSingleProfile} 
                   onPreview={() => handlePreview(singleProfile, 'single')}
                   isPreviewing={previewLoading === 'single'}
+                  theme={theme}
                 />
               ) : (
                 <div className="space-y-4">
@@ -998,19 +887,19 @@ const App: React.FC = () => {
                         <span className="text-[10px] font-black uppercase italic tracking-wider flex items-center gap-2" style={{ color: theme.colors.accent }}><User size={12} /> {s.name}</span>
                         <input value={s.name} onChange={(e) => {
                           const ns = [...speakers];
-                          ns[idx].name = e.target.value;
+                          ns[idx] = { ...ns[idx], name: e.target.value };
                           setSpeakers(ns);
                         }} className="bg-transparent border-b text-xs text-right outline-none transition-all" style={{ color: theme.colors.text, borderColor: theme.colors.border }} />
                       </div>
                       <ProfileSelector 
                         profile={s.profile} 
                         onChange={(p) => {
-                          const ns = [...speakers];
-                          ns[idx].profile = p;
+                          const ns = speakers.map((sp, i) => i === idx ? { ...sp, profile: p } : sp);
                           setSpeakers(ns);
                         }} 
                         onPreview={() => handlePreview(s.profile, s.id)}
                         isPreviewing={previewLoading === s.id}
+                        theme={theme}
                       />
                     </div>
                   ))}
@@ -1108,7 +997,7 @@ const App: React.FC = () => {
                           <div key={line.id} className="flex gap-2 lg:gap-4 items-start group animate-in slide-in-from-left-2 duration-300">
                             <select value={line.speakerId} onChange={(e) => {
                               const nd = [...dialogue];
-                              nd[idx].speakerId = e.target.value;
+                              nd[idx] = { ...nd[idx], speakerId: e.target.value };
                               setDialogue(nd);
                             }} className="w-20 lg:w-24 shrink-0 border text-[10px] font-black rounded-lg p-2 outline-none cursor-pointer"
                               style={{ backgroundColor: theme.colors.bg, borderColor: theme.colors.border, color: theme.colors.accent }}
@@ -1117,7 +1006,7 @@ const App: React.FC = () => {
                             </select>
                             <textarea value={line.text} onChange={(e) => {
                               const nd = [...dialogue];
-                              nd[idx].text = e.target.value;
+                              nd[idx] = { ...nd[idx], text: e.target.value };
                               setDialogue(nd);
                             }} className="flex-1 border rounded-xl p-3 text-sm outline-none resize-none min-h-[40px] transition-all"
                                style={{ backgroundColor: theme.colors.bg, borderColor: theme.colors.border, color: theme.colors.text }}
