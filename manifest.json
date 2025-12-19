@@ -1,0 +1,16 @@
+
+{
+  "short_name": "TTS Master",
+  "name": "TTS Master Human AI Pro",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/5988/5988458.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0E1117",
+  "background_color": "#0E1117"
+}
